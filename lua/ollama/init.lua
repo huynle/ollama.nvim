@@ -40,6 +40,7 @@ local M = {}
 ---@field prompts table<string, Ollama.Prompt | false>? A table of prompts to use for each model
 ---@field action Ollama.PromptActionBuiltinEnum | Ollama.PromptAction | nil How to handle prompt outputs when not specified by prompt
 ---@field url string? The url to use to connect to the ollama server
+---@field chat_dir string? the path to store chat conversations
 ---@field serve Ollama.Config.Serve? Configuration for the ollama server
 
 ---@class Ollama.Config.Serve
@@ -54,6 +55,7 @@ function M.default_config()
 		model = "mistral",
 		url = "http://127.0.0.1:11434",
 		prompts = require("ollama.prompts"),
+		chat_dir = vim.fn.stdpath("data"):gsub("/$", "") .. "/ollama/chats",
 		serve = {
 			on_start = false,
 			command = "ollama",
@@ -242,6 +244,7 @@ function M.prompt(name)
 			body = vim.json.encode({
 				model = model,
 				prompt = parsed_prompt,
+				stream = true,
 				-- TODO: accept options in ollama spec such as temperature, etc
 			}),
 			stream = require("ollama.util").handle_stream(cb),
@@ -411,6 +414,10 @@ function M.setup(opts)
 
 	vim.api.nvim_create_user_command("OllamaModel", M.choose_model, {
 		desc = "List and select from available ollama models",
+	})
+
+	vim.api.nvim_create_user_command("OllamaChat", require("ollama.chat").new(M.config), {
+		desc = "Chat with Ollama",
 	})
 
 	vim.api.nvim_create_user_command("OllamaServe", function()
